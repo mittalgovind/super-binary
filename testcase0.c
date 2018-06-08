@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <string.h>
 
-int fact(int n)
-{
-	return n<=1 ? 1 : n*fact(n-1);
-}
+ int fact(int n)
+ {
+ 	return n<=1 ? 1 : n*fact(n-1);
+ }
 
-void main()
+int main()
 {
 	
 	int ch=1, i, j;
@@ -26,4 +26,5 @@ void main()
 		for(j = 0; j < 2; j++)
 			printf("j\n");
 	}
+	return 0;
 }
