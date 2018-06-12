@@ -1,17 +1,18 @@
 import re
 import sys
 import pdb
+import networkx as nx
+import pylab
 
 func_names = open("funcs_"+sys.argv[1]+".txt", "r")
 func_names = list(func_names)
-func_names  = [func[1:-2] for func in func_names]
+func_names  = [func.split(' ')[1][:-1] for func in func_names]
 no_of_funcs = len(func_names)
 
 cfg = open(sys.argv[1]+".c.011t.cfg",  "r")
 cfg = list(cfg)
 
 asm = open(sys.argv[1]+".s", "r")
-# asm = open("asm.s", "r")
 asm = list(asm)
 functions = dict([(i, '') for i in func_names])
 func_name = ''
@@ -25,7 +26,7 @@ for instr in asm:
 		currFunc = []
 		func_name = match.group(1)
 		continue
-		
+
 	if flag == 1:
 		if instr != '\n':
 			currFunc += [instr]
@@ -33,50 +34,82 @@ for instr in asm:
 			functions[func_name] = currFunc
 			flag = 0
 
+jump_regex = re.compile(r'                	(j[a-z]*) *([a-f0-9]+)')
+addr_regex = re.compile(r'([0-9a-f]+):\t')
+split_funcs = []
+jump_targets_all = []
+graph_no = 0
+for func_name, instructions in functions.iteritems():
+	split_funcs += [dict()]
+	jump_targets = []
+	addr_match = re.search(addr_regex, instructions[0])
+	jump_targets += [addr_match.group(1)]
+	flag = 0
+	for instr in instructions:
+		jump_match = re.search(jump_regex, instr)
+		if jump_match:
+			jump_targets += [jump_match.group(2)]
+			flag = 1
+			continue
+		if flag == 1:
+			addr_match = re.search(addr_regex, instr)
+			if jump_targets.__contains__(addr_match.group(1)) == 0:
+				jump_targets += [addr_match.group(1)]
+			flag = 0
+
+	bbs = dict()
+	bbs[0] = ["Entry"]
+	curr_block = 0
+	for instr in instructions:
+		addr_match = re.search(addr_regex, instr)
+		if jump_targets.__contains__(addr_match.group(1)):
+			curr_block += 1
+			bbs[curr_block] = []
+			bbs[curr_block] += [instr] 
+		else:
+			bbs[curr_block] += [instr]
+	split_funcs[graph_no] = bbs
+	jump_targets_all += [sorted(set(jump_targets))]
+	graph_no += 1
+
+
+G = dict()
+graph_no = 0
 pdb.set_trace()
+for func_name, bbs in split_funcs:
+	G[graph_no] = nx.DiGraph()
+	no_of_blocks = len(bbs)
+	G[graph_no].add_node(0)
+	for i in range(1, no_of_blocks):
+		G[graph_no].add_node(i)
+	
+	G[graph_no].add_edge(0, 1)
+	for i in range(1, no_of_blocks - 1):
+		bb = bbs[i]
+		jump_match = re.search(jump_regex, bb[-1])
+		if jump_match:
+			if jump_match.group(1) == 'jmp':
+				j = jump_targets_all[graph_no].index(jump_match.group(2))
+				G[graph_no].add_edge(i, j+1)
+			else :	
+				j = jump_targets_all[graph_no].index(jump_match.group(2))
+				G[graph_no].add_edge(i, j+1)
+				G[graph_no].add_edge(i, i+1)
+		else:
+			G[graph_no].add_edge(i, i+1)
+	graph_no += 1
 
-# asm = open(sys.argv[1]+".S", "r")
-# asm = list(asm)
-jump_regex = re.compile(r'                	j[a-z]*    ([a-f0-9]+)')
-i = 0
-
-# while i < no_of_funcs:
-# 	for instr in asm:
-# 		match = re.search(jump_regex, instr)
-# 		if match:
-
-
-
-
-# regex = r";; (\d+) succs { ([\d+ ]*) }"
-# match = re.search(regex, l[-1])
-# n = int(match.group(1)) + 1
-
-# mat = [[0 for i in range(n)] for j in range(n)]
-# e = 0
-# for line in l:
-# 	match = re.search(regex, line)
-# 	i = int(match.group(1))
-# 	js = match.group(2).split(' ')
-# 	for j in js:
-# 		if mat[i][int(j)] == 1:
-# 			continue
-# 		else:
-# 			e += 1
-# 			mat[i][int(j)] = 1
-# out = str(n) + " " +  str(e) + '\n'
-# fout.write(out)
-# first = True
-# for i in range(n):
-# 	for j in range(n):
-# 		if mat[i][j] == 1:
-# 			if first == True:
-# 				first = False
-# 				for k in range(i):
-# 					out = str(k) + " " + str(k+1) + '\n'
-# 					fout.write(out) 
-# 			out = str(i) + " " + str(j) + '\n'
-# 			fout.write(out)
-
-# f.close()
-# fout.close()
+for i in range(no_of_funcs):
+	graph = open("./graphs/graph"+str(i+1), "w")
+	address = open("./graphs/addr"+str(i+1), "w")
+	no_of_nodes = len(G[i].nodes())
+	edges = G[i].edges().keys()
+	no_of_edges = len(edges)
+	graph.write(str(no_of_nodes) + " " + str(no_of_edges)+'\n')
+	for a, b in iter(edges):
+		graph.write(str(a) + " " + str(b)+'\n')
+	jump_targets = jump_targets_all[i]
+	for target in jump_targets:
+		address.write(target + '\n')
+	graph.close()
+	address.close()
