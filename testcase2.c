@@ -4,7 +4,7 @@
  
 void Tprime();
 void Eprime();
-void E();
+void E(int a, int b);
 void check(); 
 void T();
  
@@ -18,7 +18,7 @@ int main()
       flag = 0;
       printf("\nEnter an Algebraic Expression:\t");
       scanf("%s", expression);
-      E();
+      E(4, 7);
       if((strlen(expression) == count) && (flag == 0))
       {
             printf("\nThe Expression %s is Valid\n", expression);
@@ -29,8 +29,9 @@ int main()
       }
 }
                     
-void E()
+void E(int a, int b)
 {
+      int c = a + b;
       T();
       Eprime();
 }
@@ -63,7 +64,7 @@ void check()
       else if(expression[count] == '(')
       {
             count++;
-            E();
+            E(4, 7);
             if(expression[count] == ')')
             {
                   count++;
