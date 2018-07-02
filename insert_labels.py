@@ -26,10 +26,9 @@ for line in funcs:
 func_regex = re.compile(r'([A-Za-z0-9_]+):')
 called_regex = re.compile(r'\tcall\t([A-Za-z0-9_]+)')
 jump_regex = re.compile(r'\t(j[a-z]+)\t.([A-Za-z0-9]+)')
-
+ret_regex = re.compile(r'\tret\n')
 modasm = asm[0:63]
 asm = asm[63:]
-G = nx.DiGraph()
 insert_pos = 0
 curr_func = ''
 
@@ -42,6 +41,7 @@ for i, line in enumerate(asm):
 	func_match = re.search(func_regex, line)
 	called_match = re.search(called_regex, line)
 	jump_match = re.search(jump_regex, line)
+	ret_match = re.search(ret_regex, line)
 	if func_match and functions.has_key(func_match.group(1)):
 		curr_func = func_match.group(1)
 		jump_count = 0
@@ -51,6 +51,12 @@ for i, line in enumerate(asm):
 		else:
 			insert_pos = len(modasm) - 1
 			modasm.insert(-2, "	.section	.rodata\n")
+		put('.funcname_' + curr_func +":\n")
+		put('\t.string\t\"' + curr_func + '\"\n")
+		put('.ret_'+ curr_func + ':\n')
+		put('\tpushl\t$.funcname_'+curr_func+'\n')
+		put('\tcall\tvErIfY\n')
+		put('\tret\n)
 		modasm.append(line)
 		if "main:" in line:
 			modasm.append('\tcall\tinit_file_for_vErIfY\n')
@@ -89,6 +95,8 @@ for i, line in enumerate(asm):
 			else:
 				modasm.append(line)
 				break
+	elif ret_match:
+		put('\tjmp\t.ret_'+curr_func+'\n')
 	else:
 		modasm.append(line)
 
