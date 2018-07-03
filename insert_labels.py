@@ -1,6 +1,7 @@
 import re
 import sys
 import random
+import pdb
 import networkx as nx
 from get_control_graphs import jump_targets_all_raw
 from getsecpoints import secpoints
@@ -10,7 +11,10 @@ def randhex():
 	for i in range(16):
 		s += str(random.randint(0, 1))
 	s = hex(int(s, 2))
-	return '_' + s[2: ]
+	s = s[2:]
+	if len(s) == 3:
+		s = '0' + s
+	return '_' + s
 
 asm = open(sys.argv[1] + ".s", "rw+")
 asm = list(asm)
@@ -23,10 +27,10 @@ for line in funcs:
 	functions[func] = no_of_args
 
 
-func_regex = re.compile(r'([A-Za-z0-9_]+):')
+func_regex = re.compile(r'^([A-Za-z0-9_]+):')
 called_regex = re.compile(r'\tcall\t([A-Za-z0-9_]+)')
 jump_regex = re.compile(r'\t(j[a-z]+)\t.([A-Za-z0-9]+)')
-ret_regex = re.compile(r'\tret\n')
+ret_regex = re.compile(r'\tleave\n')
 modasm = asm[0:63]
 asm = asm[63:]
 insert_pos = 0
@@ -51,15 +55,18 @@ for i, line in enumerate(asm):
 		else:
 			insert_pos = len(modasm) - 1
 			modasm.insert(-2, "	.section	.rodata\n")
-		put('.funcname_' + curr_func +":\n")
-		put('\t.string\t\"' + curr_func + '\"\n")
-		put('.ret_'+ curr_func + ':\n')
-		put('\tpushl\t$.funcname_'+curr_func+'\n')
-		put('\tcall\tvErIfY\n')
-		put('\tret\n)
 		modasm.append(line)
 		if "main:" in line:
+			put('.func_main:\n')
+			put('\t.string\t\"call_main\"\n')
+			put('.call_main:\n')
+			put('\tpushl\t$.func_main\n')
+			put('\tcall\tvErIfY\n')
+			put('\tjmp\t.retcall_main\n')
 			modasm.append('\tcall\tinit_file_for_vErIfY\n')
+			modasm.append('\tjmp\t.call_main\n')
+			modasm.append('.retcall_main:\n')
+
 
 	elif called_match and functions.has_key(called_match.group(1)):
 		no_of_args = functions[called_match.group(1)]
@@ -95,8 +102,17 @@ for i, line in enumerate(asm):
 			else:
 				modasm.append(line)
 				break
-	elif ret_match:
-		put('\tjmp\t.ret_'+curr_func+'\n')
+	elif ret_match and curr_func != '' :
+		put('.funcname_' + curr_func +":\n")
+		put('\t.string\t\"ret_' + curr_func + '\"\n')
+		put('.ret_'+ curr_func + ':\n')
+		# put('\tpushl\t$1'+'\n')
+		put('\tpushl\t$.funcname_'+curr_func+'\n')
+		put('\tcall\tvErIfY\n')
+		put('\tjmp\t.end_'+curr_func+'\n')
+		modasm.append('\tjmp\t.ret_'+curr_func+'\n')
+		modasm.append('.end_'+curr_func+':\n')
+		modasm.append(line)
 	else:
 		modasm.append(line)
 

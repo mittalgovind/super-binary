@@ -1,8 +1,7 @@
 #include <sys/ptrace.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-char dummy_str[] = "This is a string";
+#include<unistd.h>
 
 void cleanup_and_exit()
 {
@@ -12,7 +11,7 @@ void cleanup_and_exit()
 
 int being_debugged()
 {
-    if(ptrace(PTRACE_TRACEME, 0, NULL, 0) > 0) {
+    if(ptrace(PTRACE_TRACEME, 0, NULL, 0) < 0) {
         cleanup_and_exit();
     } else {
         printf("Something fishy\n");
@@ -23,10 +22,14 @@ int being_debugged()
 
 int main(int argc, char **argv)
 {
-    if(being_debugged()) {
-        printf("being debugged!\n");
-    } else {
-        printf("everything okay\n");
+    int i = 0;
+    for(i = 0; i < 100; i++){
+        if(being_debugged()) {
+            printf("being debugged!\n");
+        } else {
+            printf("everything okay\n");
+        }
+        sleep(1);
     }
 
     return 0;
