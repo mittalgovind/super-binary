@@ -4,7 +4,7 @@ source = open(sys.argv[1] + '.c', 'r')
 source = list(source)
 verify_method_code = "\nFILE* verify_me_please;\n\n" \
 				+ "int init_file_for_vErIfY(){\n\tverify_me_please = fopen(\"verify_" + sys.argv[1] +".txt\", \"rw+\");\n}\n\n" \
-				+ "int vErIfY(char name[100]){\n\tfprintf(verify_me_please, \"%s\\n\", name);\n\tfflush(fp);\n}\n"
+				+ "int vErIfY(char name[100]){\n\tfprintf(verify_me_please, \"%s\\n\", name);\n}\n"
 flag = 0 
 header = False
 dest = []
