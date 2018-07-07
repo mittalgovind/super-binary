@@ -60,8 +60,11 @@ for i, line in enumerate(asm):
 			put('.func_main:\n')
 			put('\t.string\t\"call_main\"\n')
 			put('.call_main:\n')
+			put('\tpushl\t%eax\n')
 			put('\tpushl\t$.func_main\n')
 			put('\tcall\tvErIfY\n')
+			put('\tpop\t%eax\n')
+			put('\tpop\t%eax\n')
 			put('\tjmp\t.retcall_main\n')
 			modasm.append('\tcall\tinit_file_for_vErIfY\n')
 			modasm.append('\tjmp\t.call_main\n')
@@ -74,8 +77,11 @@ for i, line in enumerate(asm):
 		call_label = 'call_' + called_match.group(1) + randstr
 		put('.str'+randstr+":\n\t.string\t\""+call_label +"\"\n")
 		put('.'+call_label + ":\n")
+		put('\tpushl\t%eax\n')
 		put('\tpushl\t$.str'+randstr+"\n")
 		put('\tcall\tvErIfY\n')
+		put('\tpop\t%eax\n')
+		put('\tpop\t%eax\n')
 		while no_of_args > 0:
 			put(modasm.pop())
 			no_of_args -= 1
@@ -88,17 +94,22 @@ for i, line in enumerate(asm):
 		jump_count += 1
 		for addr, count in jump_targets_all_raw[curr_func]:
 			if addr in secpoints and count == jump_count:
+				# pdb.set_trace()
 				randstr = randhex()
 				jump_label = 'jump_' + jump_match.group(2) + randstr 
 				put('.str'+randstr+":\n\t.string\t\""+jump_label+"\"\n")
 				put('.'+jump_label+":\n")
+				put('\tpushl\t%eax\n')
 				put('\tpushl\t$.str'+randstr+"\n")
 				put('\tcall\tvErIfY\n')
+				put('\tpop\t%eax\n')
+				put('\tpop\t%eax\n')
 				put(modasm.pop())
 				put(line)
 				put('\tjmp\t.ret'+jump_label+ '\n')
 				modasm.append('\tjmp\t.' + jump_label+"\n")
 				modasm.append('.ret'+jump_label+ ":\n")
+				break;
 			else:
 				modasm.append(line)
 				break
@@ -106,9 +117,11 @@ for i, line in enumerate(asm):
 		put('.funcname_' + curr_func +":\n")
 		put('\t.string\t\"ret_' + curr_func + '\"\n')
 		put('.ret_'+ curr_func + ':\n')
-		# put('\tpushl\t$1'+'\n')
+		put('\tpushl\t%eax\n')
 		put('\tpushl\t$.funcname_'+curr_func+'\n')
 		put('\tcall\tvErIfY\n')
+		put('\tpop\t%eax\n')
+		put('\tpop\t%eax\n')
 		put('\tjmp\t.end_'+curr_func+'\n')
 		modasm.append('\tjmp\t.ret_'+curr_func+'\n')
 		modasm.append('.end_'+curr_func+':\n')
